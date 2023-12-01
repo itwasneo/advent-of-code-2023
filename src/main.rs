@@ -2,7 +2,6 @@ mod days;
 mod util;
 
 use clap::Parser;
-use days::*;
 
 fn main() {
     let args = util::Cli::parse();
