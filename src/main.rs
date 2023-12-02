@@ -10,6 +10,7 @@ fn main() {
         println!("Solving day: {}", day);
         match day {
             1 => days::day_1::solve(),
+            2 => days::day_2::solve(),
             _ => println!("Solution for day {} does not exist.", day),
         }
         println!("~~~~~~~~~~~~~~~~~~~~~~~");
@@ -19,6 +20,7 @@ fn main() {
         println!("Measuring day: {}", day);
         match day {
             1 => measure(days::day_1::solve),
+            2 => measure(days::day_2::solve),
             _ => println!("Can not measure day {} solution.", day),
         }
         println!("~~~~~~~~~~~~~~~~~~~~~~~");
