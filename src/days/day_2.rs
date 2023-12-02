@@ -28,8 +28,38 @@ pub fn solve() {
     println!("Part 1: {result}");
     part_2(content);
 }
-fn part_2(_input: String) {
-    println!("Part 2: {}", "<RESULT>");
+
+fn part_2(input: String) {
+    let result = input
+        .lines()
+        .map(|line| {
+            let (_, cubes) = line.split_once(":").unwrap();
+            let mut rounds = cubes.split(";");
+            let (mut r, mut g, mut b) = (u32::MIN, u32::MIN, u32::MIN);
+            while let Some(round) = rounds.next() {
+                let mut cube_infos = round.trim().split(",");
+                while let Some(cube_info) = cube_infos.next() {
+                    let (amount, color) = cube_info.trim().split_once(" ").unwrap();
+                    let val = amount.parse::<u32>().unwrap();
+                    match color {
+                        "red" => {
+                            r = if val > r { val } else { r };
+                        }
+                        "green" => {
+                            g = if val > g { val } else { g };
+                        }
+                        "blue" => {
+                            b = if val > b { val } else { b };
+                        }
+                        _ => eprintln!("UNKNOWN COLOR"),
+                    }
+                }
+            }
+            r * g * b
+        })
+        .reduce(|acc, a| acc + a)
+        .unwrap();
+    println!("Part 2: {result}");
 }
 fn read_input() -> String {
     let current_dir = std::env::current_dir().expect("Failed to get current_dir");
