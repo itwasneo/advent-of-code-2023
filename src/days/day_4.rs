@@ -37,9 +37,10 @@ fn part_2(input: String) {
         game_numbers.extend(m.trim().split_whitespace());
         let matches = winner_numbers.intersection(&game_numbers).count();
         let clamped_end = (id + matches).max(0).min(205);
-        for _ in 0..mem[id - 1] {
-            mem[id..clamped_end].iter_mut().for_each(|m| *m += 1);
-        }
+        let add_amount = mem[id - 1];
+        mem[id..clamped_end]
+            .iter_mut()
+            .for_each(|m| *m += add_amount);
     });
     let result = mem.iter().sum::<u32>();
     println!("Part 2: {result}");
