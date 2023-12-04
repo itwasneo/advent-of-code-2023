@@ -36,7 +36,7 @@ fn part_2(input: String) {
         winner_numbers.extend(w.trim().split_whitespace());
         game_numbers.extend(m.trim().split_whitespace());
         let matches = winner_numbers.intersection(&game_numbers).count();
-        let clamped_end = (id + matches).max(0).min(205);
+        let clamped_end = (id + matches).min(205);
         let add_amount = mem[id - 1];
         mem[id..clamped_end]
             .iter_mut()
