@@ -24,6 +24,7 @@ pub fn solve() {
     println!("Part 1: {result}");
     part_2(content);
 }
+
 fn part_2(input: String) {
     let mut mem = [1_u32; 205];
     mem[0] = 1;
@@ -45,6 +46,7 @@ fn part_2(input: String) {
     let result = mem.iter().sum::<u32>();
     println!("Part 2: {result}");
 }
+
 fn read_input() -> String {
     let current_dir = std::env::current_dir().expect("Failed to get current_dir");
     let file_path = current_dir.join("input/input_4.txt");
