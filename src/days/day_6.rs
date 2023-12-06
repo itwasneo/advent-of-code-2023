@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 pub fn solve() {
     let content = read_input();
     let (times_raw, dists_raw) = content.split_once("\n").unwrap();
@@ -36,8 +38,26 @@ pub fn solve() {
     println!("Part 1: {result}");
     part_2(content);
 }
-fn part_2(_input: String) {
-    println!("Part 2: {}", "<RESULT>");
+fn part_2(input: String) {
+    let (times_raw, dists_raw) = input.split_once("\n").unwrap();
+    let time = str::parse::<f64>(&times_raw.split_whitespace().skip(1).join("")).unwrap();
+    let dist = -str::parse::<f64>(&dists_raw.split_whitespace().skip(1).join("")).unwrap();
+    let com = (time * time + 4_f64 * dist) as f64;
+    let x_1 = (-time + com.sqrt()) / -2_f64;
+    let x_2 = (-time - com.sqrt()) / -2_f64;
+
+    let l = if x_1.fract() == 0.0 {
+        x_1 as i64 + 1
+    } else {
+        x_1.ceil() as i64
+    };
+    let r = if x_2.fract() == 0.0 {
+        x_2 as i64 - 1
+    } else {
+        x_2.floor() as i64
+    };
+    let result = r - l + 1;
+    println!("Part 2: {result}");
 }
 fn read_input() -> String {
     let current_dir = std::env::current_dir().expect("Failed to get current_dir");
