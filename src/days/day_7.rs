@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-use itertools::Itertools;
-
 #[derive(PartialEq, Eq, Debug)]
 enum Hands {
     HighCard,
@@ -52,14 +50,6 @@ impl PartialOrd for IndexedHand {
 
 pub fn solve() {
     let content = read_input();
-    let rows: Vec<(&str, u32)> = content
-        .lines()
-        .map(|l| {
-            let tmp = l.split_once(" ").unwrap();
-            (tmp.0, str::parse::<u32>(tmp.1).unwrap())
-        })
-        .collect_vec();
-
     let mut high_cards: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut one_pairs: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut two_pairs: BinaryHeap<IndexedHand> = BinaryHeap::new();
@@ -68,15 +58,26 @@ pub fn solve() {
     let mut four_of_a_kinds: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut five_of_a_kinds: BinaryHeap<IndexedHand> = BinaryHeap::new();
 
-    let mut indexed_reprs: Vec<(Hands, IndexedHand, u32)> = vec![];
-    for row in rows.iter() {
-        let mut arr = [0_u8; 13];
+    // Collecting each processed data in one vector.
+    // I'm using this vector, when I traverse the hands second time.
+    let mut processed: Vec<(Hands, IndexedHand, u32)> = vec![];
+
+    content.lines().for_each(|l| {
+        let (hand, bid) = l.split_once(" ").unwrap();
         let mut index_repr = [0_usize; 5];
-        row.0.chars().enumerate().for_each(|(i, c)| {
+        let mut arr = [0_u8; 13];
+
+        // Converting each card to their corresponding index numbers and store
+        // it in a fixed sized array(index_repr)
+        // Instead of some kind of HashMap, I also again used a fixed sized
+        // for the "seen" cards(arr)
+        hand.chars().enumerate().for_each(|(i, c)| {
             let idx = card_to_idx(&c);
             index_repr[i] = idx;
             arr[idx] += 1;
         });
+
+        // Determining which hand type first using arr
         let mut current_hand = Hands::HighCard;
         for v in arr.into_iter() {
             if v == 0 || v == 1 {
@@ -111,9 +112,11 @@ pub fn solve() {
             Hands::FourOfAKind => four_of_a_kinds.push(indexed_hand.clone()),
             Hands::FiveOfAKind => five_of_a_kinds.push(indexed_hand.clone()),
         }
-        indexed_reprs.push((current_hand, indexed_hand, row.1));
-    }
+        processed.push((current_hand, indexed_hand, str::parse::<u32>(bid).unwrap()));
+    });
 
+    // Converting BinaryHeaps into sorted_vecs so that "position" function
+    // gives the accurate positions.
     let high_cards = high_cards.into_sorted_vec();
     let one_pairs = one_pairs.into_sorted_vec();
     let two_pairs = two_pairs.into_sorted_vec();
@@ -122,6 +125,7 @@ pub fn solve() {
     let four_of_a_kinds = four_of_a_kinds.into_sorted_vec();
     let five_of_a_kinds = five_of_a_kinds.into_sorted_vec();
 
+    // These are used during ranking calculations
     let one_pairs_offset = high_cards.len() as u32;
     let two_pairs_offset = one_pairs_offset + one_pairs.len() as u32;
     let three_of_a_kinds_offset = two_pairs_offset + two_pairs.len() as u32;
@@ -129,39 +133,40 @@ pub fn solve() {
     let four_of_a_kinds_offset = full_houses_offset + full_houses.len() as u32;
     let five_of_a_kinds_offset = four_of_a_kinds_offset + four_of_a_kinds.len() as u32;
 
-    let result: u32 = indexed_reprs
+    // Second Traverse
+    // Since each hand is inside its own BinaryHeap > Sorted Vecs, it is
+    // O(n) to find its position where n is not the overall Hand count but the
+    // count of the hands that blong to single HandType.
+    let result: u32 = processed
         .iter()
-        .map(|(h, i, b)| {
-            //println!("{:?} - {:?}", h, i);
-            match h {
-                Hands::HighCard => {
-                    let pos = high_cards.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + 1) * b
-                }
-                Hands::OnePair => {
-                    let pos = one_pairs.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + one_pairs_offset + 1) * b
-                }
-                Hands::TwoPair => {
-                    let pos = two_pairs.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + two_pairs_offset + 1) * b
-                }
-                Hands::ThreeOfAKind => {
-                    let pos = three_of_a_kinds.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + three_of_a_kinds_offset + 1) * b
-                }
-                Hands::FullHouse => {
-                    let pos = full_houses.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + full_houses_offset + 1) * b
-                }
-                Hands::FourOfAKind => {
-                    let pos = four_of_a_kinds.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + four_of_a_kinds_offset + 1) * b
-                }
-                Hands::FiveOfAKind => {
-                    let pos = five_of_a_kinds.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + five_of_a_kinds_offset + 1) * b
-                }
+        .map(|(h, i, b)| match h {
+            Hands::HighCard => {
+                let pos = high_cards.iter().position(|r| r == i).unwrap();
+                (pos as u32 + 1) * b
+            }
+            Hands::OnePair => {
+                let pos = one_pairs.iter().position(|r| r == i).unwrap();
+                (pos as u32 + one_pairs_offset + 1) * b
+            }
+            Hands::TwoPair => {
+                let pos = two_pairs.iter().position(|r| r == i).unwrap();
+                (pos as u32 + two_pairs_offset + 1) * b
+            }
+            Hands::ThreeOfAKind => {
+                let pos = three_of_a_kinds.iter().position(|r| r == i).unwrap();
+                (pos as u32 + three_of_a_kinds_offset + 1) * b
+            }
+            Hands::FullHouse => {
+                let pos = full_houses.iter().position(|r| r == i).unwrap();
+                (pos as u32 + full_houses_offset + 1) * b
+            }
+            Hands::FourOfAKind => {
+                let pos = four_of_a_kinds.iter().position(|r| r == i).unwrap();
+                (pos as u32 + four_of_a_kinds_offset + 1) * b
+            }
+            Hands::FiveOfAKind => {
+                let pos = five_of_a_kinds.iter().position(|r| r == i).unwrap();
+                (pos as u32 + five_of_a_kinds_offset + 1) * b
             }
         })
         .sum();
@@ -170,6 +175,8 @@ pub fn solve() {
     part_2(content);
 }
 
+// For the second part, I modified idx finder function, so that J is now in the
+// lowest index.
 fn card_to_idx_2(card: &char) -> usize {
     match card {
         'J' => 0,
@@ -190,14 +197,6 @@ fn card_to_idx_2(card: &char) -> usize {
 }
 
 fn part_2(input: String) {
-    let rows: Vec<(&str, u32)> = input
-        .lines()
-        .map(|l| {
-            let tmp = l.split_once(" ").unwrap();
-            (tmp.0, str::parse::<u32>(tmp.1).unwrap())
-        })
-        .collect_vec();
-
     let mut high_cards: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut one_pairs: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut two_pairs: BinaryHeap<IndexedHand> = BinaryHeap::new();
@@ -205,16 +204,20 @@ fn part_2(input: String) {
     let mut full_houses: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut four_of_a_kinds: BinaryHeap<IndexedHand> = BinaryHeap::new();
     let mut five_of_a_kinds: BinaryHeap<IndexedHand> = BinaryHeap::new();
-
     let mut indexed_reprs: Vec<(Hands, IndexedHand, u32)> = vec![];
-    for row in rows.iter() {
+
+    input.lines().for_each(|l| {
+        let (hand, bid) = l.split_once(" ").unwrap();
         let mut arr = [0_u8; 13];
         let mut index_repr = [0_usize; 5];
-        row.0.chars().enumerate().for_each(|(i, c)| {
+        hand.chars().enumerate().for_each(|(i, c)| {
             let idx = card_to_idx_2(&c);
             index_repr[i] = idx;
             arr[idx] += 1;
         });
+
+        // It is important to determine first what is the HandType, before
+        // handling new Joker rule.
         let mut current_hand = Hands::HighCard;
         for v in arr.into_iter() {
             if v == 0 || v == 1 {
@@ -239,10 +242,15 @@ fn part_2(input: String) {
             }
         }
 
+        // Here I handle the Joker cards. arr has the info of which cards we
+        // have.
+        // arr[0] is represents Joker count.
+        // Handle each HandType
         if arr[0] > 0 {
             let joker_cnt = arr[0];
             match current_hand {
                 Hands::HighCard => {
+                    // Care the rev() method while iterating
                     if let Some(elem) = arr.iter_mut().rev().find(|&&mut i| i == 1) {
                         *elem += joker_cnt;
                     }
@@ -296,6 +304,8 @@ fn part_2(input: String) {
                 }
                 Hands::FiveOfAKind => {}
             }
+
+            // Then update the current_hand again for Joker-rule-applied hand
             current_hand = Hands::HighCard;
             for v in arr.into_iter() {
                 if v == 0 || v == 1 {
@@ -321,6 +331,7 @@ fn part_2(input: String) {
             }
         }
 
+        // Rest is the same ---------------------------------------------------
         let indexed_hand = IndexedHand { array: index_repr };
         match current_hand {
             Hands::HighCard => high_cards.push(indexed_hand.clone()),
@@ -331,8 +342,8 @@ fn part_2(input: String) {
             Hands::FourOfAKind => four_of_a_kinds.push(indexed_hand.clone()),
             Hands::FiveOfAKind => five_of_a_kinds.push(indexed_hand.clone()),
         }
-        indexed_reprs.push((current_hand, indexed_hand, row.1));
-    }
+        indexed_reprs.push((current_hand, indexed_hand, str::parse::<u32>(bid).unwrap()));
+    });
 
     let high_cards = high_cards.into_sorted_vec();
     let one_pairs = one_pairs.into_sorted_vec();
@@ -351,37 +362,34 @@ fn part_2(input: String) {
 
     let result: u32 = indexed_reprs
         .iter()
-        .map(|(h, i, b)| {
-            //println!("{:?} - {:?}", h, i);
-            match h {
-                Hands::HighCard => {
-                    let pos = high_cards.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + 1) * b
-                }
-                Hands::OnePair => {
-                    let pos = one_pairs.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + one_pairs_offset + 1) * b
-                }
-                Hands::TwoPair => {
-                    let pos = two_pairs.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + two_pairs_offset + 1) * b
-                }
-                Hands::ThreeOfAKind => {
-                    let pos = three_of_a_kinds.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + three_of_a_kinds_offset + 1) * b
-                }
-                Hands::FullHouse => {
-                    let pos = full_houses.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + full_houses_offset + 1) * b
-                }
-                Hands::FourOfAKind => {
-                    let pos = four_of_a_kinds.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + four_of_a_kinds_offset + 1) * b
-                }
-                Hands::FiveOfAKind => {
-                    let pos = five_of_a_kinds.iter().position(|r| r == i).unwrap();
-                    (pos as u32 + five_of_a_kinds_offset + 1) * b
-                }
+        .map(|(h, i, b)| match h {
+            Hands::HighCard => {
+                let pos = high_cards.iter().position(|r| r == i).unwrap();
+                (pos as u32 + 1) * b
+            }
+            Hands::OnePair => {
+                let pos = one_pairs.iter().position(|r| r == i).unwrap();
+                (pos as u32 + one_pairs_offset + 1) * b
+            }
+            Hands::TwoPair => {
+                let pos = two_pairs.iter().position(|r| r == i).unwrap();
+                (pos as u32 + two_pairs_offset + 1) * b
+            }
+            Hands::ThreeOfAKind => {
+                let pos = three_of_a_kinds.iter().position(|r| r == i).unwrap();
+                (pos as u32 + three_of_a_kinds_offset + 1) * b
+            }
+            Hands::FullHouse => {
+                let pos = full_houses.iter().position(|r| r == i).unwrap();
+                (pos as u32 + full_houses_offset + 1) * b
+            }
+            Hands::FourOfAKind => {
+                let pos = four_of_a_kinds.iter().position(|r| r == i).unwrap();
+                (pos as u32 + four_of_a_kinds_offset + 1) * b
+            }
+            Hands::FiveOfAKind => {
+                let pos = five_of_a_kinds.iter().position(|r| r == i).unwrap();
+                (pos as u32 + five_of_a_kinds_offset + 1) * b
             }
         })
         .sum();
