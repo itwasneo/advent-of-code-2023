@@ -1,3 +1,6 @@
+use std::collections::BinaryHeap;
+use std::slice::Iter;
+
 use itertools::Itertools;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -17,7 +20,6 @@ impl Ord for Range {
 
 pub fn solve() {
     let content = read_input();
-    /*
     let mut itr = content.lines();
     let seeds: Vec<u64> = itr
         .next()
@@ -77,19 +79,19 @@ pub fn solve() {
         .unwrap();
 
     println!("Part 1: {result}");
-    */
     part_2(content);
 }
+
 fn part_2(input: String) {
     let mut blocks = input.split("\n\n");
-    let mut _seed_ranges = blocks
+    let seed_ranges = blocks
         .next()
         .unwrap()
         .split_whitespace()
         .skip(1)
         .map(|s| str::parse::<u64>(s).unwrap())
         .tuples::<(u64, u64)>()
-        .map(|(l, r)| (l, l + r));
+        .collect::<Vec<(u64, u64)>>();
 
     let maps = blocks
         .map(|b| {
@@ -101,34 +103,48 @@ fn part_2(input: String) {
                         .collect_tuple::<(u64, u64, u64)>()
                         .unwrap()
                 })
-                .map(|(d, s, r)| (d, s, s + r))
+                .map(|(d, s, r)| (d, d + r, s, s + r))
                 .collect_vec()
         })
         .collect_vec();
 
-    let mut result: Vec<u64> = vec![];
-    for seed_range in _seed_ranges {
-        let mut cur_seed = seed_range.0;
-        for m in maps.iter() {
-            for m_e in m.iter() {
-                if cur_seed >= m_e.1 && cur_seed < m_e.2 {
-                    cur_seed = m_e.0 + (cur_seed - m_e.1);
-                    break;
-                } else if seed_range.1 > m_e.1 && cur_seed < m_e.1 {
-                    println!("{}", m_e.0);
-                    cur_seed = cur_seed.min(m_e.0);
-                    break;
-                }
-            }
-        }
-        result.push(cur_seed);
+    let mut min_val = u64::MAX;
+    for s in seed_ranges.into_iter() {
+        min_val = min_val.min(process_seed_range(s, maps.clone().iter()));
     }
 
-    println!("Part 2: {:?}", result.iter().min().unwrap());
+    println!("Part 2: {min_val}");
 }
+
+fn process_seed_range(s: (u64, u64), mut m: Iter<'_, Vec<(u64, u64, u64, u64)>>) -> u64 {
+    if let Some(n_m) = m.next() {
+        let mut min_val = u64::MAX;
+        for m_r in n_m {
+            if s.0 >= m_r.2 && s.0 + s.1 < m_r.3 {
+                min_val = min_val.min(process_seed_range(
+                    ((m_r.0 + s.0 - m_r.2), (m_r.0 + s.0 + s.1 - m_r.2)),
+                    m.clone(),
+                ));
+            } else if s.0 >= m_r.2 && s.0 + s.1 > m_r.3 {
+                min_val = min_val.min(process_seed_range((m_r.0 + s.0 - m_r.2, m_r.1), m.clone()));
+            } else if s.0 < m_r.2 && s.0 + s.1 >= m_r.3 {
+                min_val = min_val.min(process_seed_range((m_r.0, m_r.1), m.clone()));
+            } else if s.0 <= m_r.2 && s.0 + s.1 < m_r.3 {
+                min_val = min_val.min(process_seed_range(
+                    (m_r.0, s.0 + s.1 - m_r.2 + m_r.0),
+                    m.clone(),
+                ));
+            }
+        }
+        min_val
+    } else {
+        s.0
+    }
+}
+
 fn read_input() -> String {
     let current_dir = std::env::current_dir().expect("Failed to get current_dir");
-    let file_path = current_dir.join("input/input_5_sample.txt");
+    let file_path = current_dir.join("input/input_5.txt");
     let content = std::fs::read_to_string(file_path).expect("Failed read the content of the file");
     content.trim().to_owned()
 }
