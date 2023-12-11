@@ -19,6 +19,7 @@ fn main() {
             8 => days::day_8::solve(),
             9 => days::day_9::solve(),
             10 => days::day_10::solve(),
+            11 => days::day_11::solve(),
             _ => println!("Solution for day {} does not exist.", day),
         }
         println!("~~~~~~~~~~~~~~~~~~~~~~~");
@@ -35,7 +36,7 @@ fn main() {
             6 => measure(days::day_6::solve),
             7 => measure(days::day_7::solve),
             8 => measure(days::day_8::solve),
-            10 => measure(days::day_10::solve),
+            11 => measure(days::day_11::solve),
             _ => println!("Can not measure day {} solution.", day),
         }
         println!("~~~~~~~~~~~~~~~~~~~~~~~");
