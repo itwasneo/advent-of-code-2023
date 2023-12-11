@@ -68,12 +68,6 @@ pub fn solve() {
             let distance = (current_galaxy.0 as i32 - other_galaxy.0 as i32).abs()
                 + (current_galaxy.1 as i32 - other_galaxy.1 as i32).abs();
             result += distance;
-            /*
-            println!(
-                "current>{:?}  other>{:?}, distance>{distance}",
-                current_galaxy, other_galaxy
-            );
-            */
         }
     }
 
@@ -81,7 +75,79 @@ pub fn solve() {
     println!("Part 1: {}", "<RESULT>");
     part_2(content);
 }
-fn part_2(_input: String) {
+fn part_2(input: String) {
+    let lines: Vec<&str> = input.lines().collect();
+    let line_len = lines.iter().nth(0).unwrap().len();
+
+    let mut empty_rows = vec![];
+    lines.iter().enumerate().for_each(|(i, l)| {
+        if l.chars().all(|c| c.eq(&'.')) {
+            empty_rows.push(i);
+        }
+    });
+
+    let mut empty_cols = vec![];
+    for col_index in 0..line_len {
+        let mut col = vec![];
+        for line in &lines {
+            if let Some(c) = line.chars().nth(col_index) {
+                col.push(c);
+            }
+        }
+
+        if col.iter().all(|c| c.eq(&'.')) {
+            empty_cols.push(col_index);
+        }
+    }
+
+    let mut galaxies: Vec<(usize, usize)> = vec![];
+    for r in lines.iter().enumerate() {
+        for c in r.1.chars().enumerate() {
+            if c.1.eq(&'#') {
+                galaxies.push((r.0, c.0));
+            }
+        }
+    }
+
+    let mut result = 0;
+    for (index, &current_galaxy) in galaxies.iter().enumerate() {
+        let rest_of_vec = &galaxies[index + 1..]; // Get the remaining elements after the current index
+
+        // Perform calculation with the current element and the rest of the vector
+        for &other_galaxy in rest_of_vec {
+            let mut expand_row = 0;
+            for empty_row in &empty_rows {
+                if empty_row > &current_galaxy.0.min(other_galaxy.0)
+                    && empty_row < &current_galaxy.0.max(other_galaxy.0)
+                {
+                    expand_row += 1;
+                }
+            }
+
+            let mut expand_col = 0;
+            for empty_col in &empty_cols {
+                if empty_col > &current_galaxy.1.min(other_galaxy.1)
+                    && empty_col < &current_galaxy.1.max(other_galaxy.1)
+                {
+                    expand_col += 1;
+                }
+            }
+
+            let mut x_distance = (current_galaxy.1 as i64 - other_galaxy.1 as i64).abs();
+            if expand_col > 0 {
+                x_distance += expand_col * 999999;
+            }
+            let mut y_distance = (current_galaxy.0 as i64 - other_galaxy.0 as i64).abs();
+            if expand_row > 0 {
+                y_distance += expand_row * 999999;
+            }
+            let tmp = x_distance + y_distance;
+            result += x_distance + y_distance;
+        }
+    }
+
+    println!("{:?}", galaxies.len());
+    println!("{:?}", result);
     println!("Part 2: {}", "<RESULT>");
 }
 fn read_input() -> String {
