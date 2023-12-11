@@ -1,18 +1,17 @@
-use itertools::Itertools;
-
 pub fn solve() {
     let content = read_input();
     let lines: Vec<&str> = content.lines().collect();
     let line_len = lines.iter().nth(0).unwrap().len();
 
+    // Store the empty rows
     let mut empty_rows = vec![];
     lines.iter().enumerate().for_each(|(i, l)| {
         if l.chars().all(|c| c.eq(&'.')) {
             empty_rows.push(i);
         }
     });
-    empty_rows.reverse();
 
+    // Store the empty columns
     let mut empty_cols = vec![];
     for col_index in 0..line_len {
         let mut col = vec![];
@@ -26,55 +25,63 @@ pub fn solve() {
             empty_cols.push(col_index);
         }
     }
-    empty_cols.reverse();
 
-    let mut new_data = vec![];
-    for line in lines {
-        let mut l_vec = line.chars().collect_vec();
-        for empty_col in &empty_cols {
-            l_vec.splice(empty_col..empty_col, vec!['.']);
-        }
-        new_data.push(l_vec);
-    }
-
-    let empty_line = vec!['.'; new_data.last().unwrap().len()];
-
-    for empty_row in empty_rows {
-        new_data.splice(empty_row..empty_row, vec![empty_line.clone()]);
-    }
-
+    // Store the galaxy indices
     let mut galaxies: Vec<(usize, usize)> = vec![];
-    for r in new_data.iter().enumerate() {
-        for c in r.1.iter().enumerate() {
+    for r in lines.iter().enumerate() {
+        for c in r.1.chars().enumerate() {
             if c.1.eq(&'#') {
                 galaxies.push((r.0, c.0));
             }
         }
     }
 
-    /*
-    for r in new_data {
-        println!("{:?}", r);
-    }
-        */
-    //println!("{:?}", empty_cols);
-    //println!("{:?}", galaxies);
+    // Calculate the Manhattan distances between two galaxies
+    // If there are any empty rows or columns between two galaxies,
+    // add the expanded distance on top of the Manhattan distance.
     let mut result = 0;
     for (index, &current_galaxy) in galaxies.iter().enumerate() {
-        let rest_of_vec = &galaxies[index + 1..]; // Get the remaining elements after the current index
-
-        // Perform calculation with the current element and the rest of the vector
+        let rest_of_vec = &galaxies[index + 1..];
         for &other_galaxy in rest_of_vec {
-            let distance = (current_galaxy.0 as i32 - other_galaxy.0 as i32).abs()
-                + (current_galaxy.1 as i32 - other_galaxy.1 as i32).abs();
-            result += distance;
+            let mut expand_row = 0;
+            // There can be multiple empty rows and cols
+            // I believe this operation can be optimized with some memoization.
+            for empty_row in &empty_rows {
+                if empty_row > &current_galaxy.0.min(other_galaxy.0)
+                    && empty_row < &current_galaxy.0.max(other_galaxy.0)
+                {
+                    expand_row += 1;
+                }
+            }
+
+            let mut expand_col = 0;
+            for empty_col in &empty_cols {
+                if empty_col > &current_galaxy.1.min(other_galaxy.1)
+                    && empty_col < &current_galaxy.1.max(other_galaxy.1)
+                {
+                    expand_col += 1;
+                }
+            }
+
+            let mut x_distance = (current_galaxy.1 as i64 - other_galaxy.1 as i64).abs();
+            if expand_col > 0 {
+                x_distance += expand_col;
+            }
+            let mut y_distance = (current_galaxy.0 as i64 - other_galaxy.0 as i64).abs();
+            if expand_row > 0 {
+                y_distance += expand_row;
+            }
+            result += x_distance + y_distance;
         }
     }
 
-    println!("{result}");
-    println!("Part 1: {}", "<RESULT>");
+    println!("Part 1: {result}");
     part_2(content);
 }
+
+// Part 2 is pretty much the same, just change the distance expansion multiplier
+// by k - 1. If it is the multiplier is 2, it becomes 1, if 10 then 9
+// In this case multiplier would be 1_000_000 - 1 = 999_999
 fn part_2(input: String) {
     let lines: Vec<&str> = input.lines().collect();
     let line_len = lines.iter().nth(0).unwrap().len();
@@ -111,9 +118,7 @@ fn part_2(input: String) {
 
     let mut result = 0;
     for (index, &current_galaxy) in galaxies.iter().enumerate() {
-        let rest_of_vec = &galaxies[index + 1..]; // Get the remaining elements after the current index
-
-        // Perform calculation with the current element and the rest of the vector
+        let rest_of_vec = &galaxies[index + 1..];
         for &other_galaxy in rest_of_vec {
             let mut expand_row = 0;
             for empty_row in &empty_rows {
@@ -133,6 +138,7 @@ fn part_2(input: String) {
                 }
             }
 
+            // Care the casting of i64
             let mut x_distance = (current_galaxy.1 as i64 - other_galaxy.1 as i64).abs();
             if expand_col > 0 {
                 x_distance += expand_col * 999999;
@@ -141,14 +147,11 @@ fn part_2(input: String) {
             if expand_row > 0 {
                 y_distance += expand_row * 999999;
             }
-            let tmp = x_distance + y_distance;
             result += x_distance + y_distance;
         }
     }
 
-    println!("{:?}", galaxies.len());
-    println!("{:?}", result);
-    println!("Part 2: {}", "<RESULT>");
+    println!("Part 2: {result}");
 }
 fn read_input() -> String {
     let current_dir = std::env::current_dir().expect("Failed to get current_dir");
