@@ -1,7 +1,9 @@
+use std::collections::HashSet;
+
 use num::Integer;
 
-const TILE_COLS: usize = 140;
-const TILE_ROWS: usize = 140;
+const TILE_COLS: usize = 20;
+const TILE_ROWS: usize = 10;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Tile {
@@ -127,13 +129,86 @@ fn create_tile_map(m: &str, start: &mut (usize, usize)) -> [[Tile; TILE_COLS]; T
     tile_map
 }
 
-fn part_2(_path: Vec<(usize, usize)>) {
+fn part_2(path: Vec<(usize, usize)>) {
+    let min_x = path.iter().map(|x| x.1).min().unwrap();
+    let min_y = path.iter().map(|x| x.0).min().unwrap();
+    let max_x = path.iter().map(|x| x.1).max().unwrap();
+    let max_y = path.iter().map(|x| x.0).max().unwrap();
+
+    let mut visited: HashSet<(usize, usize)> = HashSet::new();
+    let border: HashSet<(usize, usize)> = HashSet::from_iter(path.into_iter());
+    let mut inside: HashSet<(usize, usize)> = HashSet::new();
+
+    for y in min_y..=max_y {
+        for x in min_x..=max_x {
+            if !border.contains(&(y, x))
+                && dfs((y, x), &border, &mut visited, min_x, min_y, max_x, max_y)
+            {
+                inside.insert((y, x));
+            }
+        }
+    }
+
+    //println!("min_x: {min_x}, max_x: {max_x}, min_y: {min_y}, max_y: {max_y}");
+    println!(
+        "inside_len: {:?}, border_len: {:?}, visited_len: {:?}",
+        inside.len(),
+        border.len(),
+        visited.len()
+    );
+    //println!("{:?}", inside.len());
     println!("{:?}", "<RESULT>");
+}
+
+const DIRECTIONS: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+
+fn dfs(
+    next: (usize, usize),
+    border: &HashSet<(usize, usize)>,
+    visited: &mut HashSet<(usize, usize)>,
+    min_x: usize,
+    min_y: usize,
+    max_x: usize,
+    max_y: usize,
+) -> bool {
+    if next.1 < min_x || next.1 > max_x || next.0 < min_y || next.0 > max_y {
+        return false;
+    }
+
+    if border.contains(&next) {
+        return true;
+    }
+
+    visited.insert(next);
+    let mut is_inside = false;
+    for i in 0..4 {
+        let next_1 = (
+            (next.0 as isize + DIRECTIONS[i].0),
+            (next.1 as isize + DIRECTIONS[i].1),
+        );
+        if next_1.0 >= min_y as isize
+            && next_1.0 <= max_y as isize
+            && next_1.1 >= min_x as isize
+            && next_1.1 <= max_x as isize
+        {
+            is_inside = dfs(
+                (next_1.0 as usize, next_1.1 as usize),
+                border,
+                visited,
+                min_x,
+                min_y,
+                max_x,
+                max_y,
+            );
+        }
+    }
+
+    return is_inside;
 }
 
 fn read_input() -> String {
     let current_dir = std::env::current_dir().expect("Failed to get current_dir");
-    let file_path = current_dir.join("input/input_10.txt");
+    let file_path = current_dir.join("input/input_10_sample.txt");
     let content = std::fs::read_to_string(file_path).expect("Failed read the content of the file");
     content.trim().to_owned()
 }
